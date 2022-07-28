@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/sd"
-	"github.com/go-kit/kit/sd/consul"
-	"github.com/hashicorp/consul/api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 // RetrieveAddressPort 从url中获取地址和端口
@@ -62,9 +60,9 @@ func ServiceAddress(passingService PassingService) string {
 }
 
 // ServicesByPassing 获取可用的服务
-func ServicesByPassing(client *api.Client, serviceName string, logger log.Logger) []PassingService {
+func ServicesByPassing(client *consulapi.Client, serviceName string, logger log.Logger) []PassingService {
 
-	healthChecks, _, _ := client.Health().State(api.HealthPassing, nil)
+	healthChecks, _, _ := client.Health().State(consulapi.HealthPassing, nil)
 	var result []PassingService
 	if healthChecks != nil {
 		logger.Log("len", len(healthChecks))
@@ -113,33 +111,30 @@ func ServiceIndex(pathArray []string, item string) int {
 }
 
 // RegisterService register service in consul
-func RegisterService(service string, client consul.Client, svcHost string,
-	svcPort string, tags string, interval string, logger log.Logger) (registar sd.Registrar) {
+func registerService(service string, client consulapi.Client, svcHost string, svcPort string, consulInterval string, consulTimeout string) (string, error) {
 	svcAddress := svcHost + ":" + svcPort
 
 	// 设置Consul对服务健康检查的参数
-	check := api.AgentServiceCheck{
-		HTTP:     "http://" + svcAddress + "/app/health",
-		Interval: interval,
-		Timeout:  "1s",
+	check := consulapi.AgentServiceCheck{
+		HTTP:     "http://" + svcAddress + "/healthz",
+		Interval: consulInterval + "s",
+		Timeout:  consulTimeout + "s",
 		Notes:    "Consul check service health status.",
 	}
 
 	port, _ := strconv.Atoi(svcPort)
 
 	//设置微服务Consul的注册信息
-	reg := api.AgentServiceRegistration{
+	reg := &consulapi.AgentServiceRegistration{
 		ID:      service + "_" + svcAddress,
 		Name:    service,
 		Address: svcHost,
 		Port:    port,
-		Tags:    []string{service, tags},
 		Check:   &check,
 	}
 
 	// 执行注册
-	registar = consul.NewRegistrar(client, &reg, logger)
-	//启动前执行注册
-	registar.Register()
-	return
+	err := client.Agent().ServiceRegister(reg)
+
+	return reg.ID, err
 }
