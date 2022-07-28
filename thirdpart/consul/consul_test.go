@@ -2,44 +2,46 @@ package consul
 
 import (
 	"testing"
+
+	consulapi "github.com/hashicorp/consul/api"
+)
+
+type (
+
+	// App -.
+	App struct {
+		Name    string `env-required:"true" yaml:"name"    env:"APP_NAME"`
+		Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
+	}
+
+	// Log -.
+	Log struct {
+		Level string `env-required:"true" yaml:"log_level"   env:"LOG_LEVEL"`
+	}
+
+	// PG -.
+	PG struct {
+		PoolMax int    `env-required:"true" yaml:"pool_max" env:"PG_POOL_MAX"`
+		URL     string `env-required:"true" yaml:"url"      env:"PG_URL"`
+	}
+
+	// RMQ -.
+	RMQ struct {
+		ServerExchange string `env-required:"true" yaml:"rpc_server_exchange" env:"RMQ_RPC_SERVER"`
+		ClientExchange string `env-required:"true" yaml:"rpc_client_exchange" env:"RMQ_RPC_CLIENT"`
+		URL            string `env-required:"true" yaml:"url"                 env:"RMQ_URL"`
+	}
+
+	// Config -.
+	Config struct {
+		App `yaml:"app"`
+		Log `yaml:"logger"`
+		PG  `yaml:"postgres"`
+		RMQ `yaml:"rabbitmq"`
+	}
 )
 
 func Test_Consul(t *testing.T) {
-	type (
-
-		// App -.
-		App struct {
-			Name    string `env-required:"true" yaml:"name"    env:"APP_NAME"`
-			Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
-		}
-
-		// Log -.
-		Log struct {
-			Level string `env-required:"true" yaml:"log_level"   env:"LOG_LEVEL"`
-		}
-
-		// PG -.
-		PG struct {
-			PoolMax int    `env-required:"true" yaml:"pool_max" env:"PG_POOL_MAX"`
-			URL     string `env-required:"true" yaml:"url"      env:"PG_URL"`
-		}
-
-		// RMQ -.
-		RMQ struct {
-			ServerExchange string `env-required:"true" yaml:"rpc_server_exchange" env:"RMQ_RPC_SERVER"`
-			ClientExchange string `env-required:"true" yaml:"rpc_client_exchange" env:"RMQ_RPC_CLIENT"`
-			URL            string `env-required:"true" yaml:"url"                 env:"RMQ_URL"`
-		}
-
-		// Config -.
-		Config struct {
-			App `yaml:"app"`
-			Log `yaml:"logger"`
-			PG  `yaml:"postgres"`
-			RMQ `yaml:"rabbitmq"`
-		}
-	)
-
 	type args struct {
 		consulAddr     string
 		serviceName    string
@@ -65,6 +67,30 @@ func Test_Consul(t *testing.T) {
 				t.Errorf("RegisterAndCfgConsul returns error: %v.", err)
 			}
 			DeregisterService(consulClient, serviceID)
+		})
+	}
+}
+
+func Test_ConsulKV(t *testing.T) {
+	type kvArgs struct {
+		cfg          *Config
+		consulClient *consulapi.Client
+		folder       string
+		serviceName  string
+	}
+	consulClient := CreateClient("172.16.12.11:8500")
+	tests := []struct {
+		name string
+		args kvArgs
+	}{
+		{"test_ConsulKV", kvArgs{&Config{}, consulClient, "dev", "clean"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := GetKV(tt.args.cfg, tt.args.consulClient, tt.args.folder, tt.args.serviceName)
+			if err != nil {
+				t.Errorf("GetKV() returns error: %v.", err)
+			}
 		})
 	}
 }

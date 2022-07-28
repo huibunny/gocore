@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -103,9 +104,7 @@ func ServiceIndex(pathArray []string, item string) int {
 	return index
 }
 
-func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
-	host, port, consulInterval,
-	consulTimeout, folder string) (*consulapi.Client, string, error) {
+func CreateClient(consulAddr string) *consulapi.Client {
 	// 创建consul api客户端
 	consulConfig := consulapi.DefaultConfig()
 	consulConfig.Address = consulAddr
@@ -114,21 +113,32 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 		os.Exit(1)
 	}
 
-	var serviceID string
-	serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulInterval, consulTimeout)
+	return consulClient
+}
+
+func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) error {
+	key := strings.Join([]string{folder, serviceName}, "/")
+	kv, _, err := consulClient.KV().Get(key, nil)
 	if err == nil {
-		key := strings.Join([]string{folder, serviceName}, "/")
-		kv, _, err := consulClient.KV().Get(key, nil)
-		if err == nil {
+		if kv == nil {
+			err = errors.New("KV not found for " + key + ".")
+		} else {
 			// only support yaml kv
 			err = yaml.NewDecoder(strings.NewReader(string(kv.Value))).Decode(cfg)
-			if err == nil {
-			} else {
-				print("error: " + err.Error())
-			}
-		} else {
-			print("error: " + err.Error())
 		}
+	} else {
+	}
+
+	return err
+}
+
+func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
+	host, port, consulInterval,
+	consulTimeout, folder string) (*consulapi.Client, string, error) {
+	consulClient := CreateClient(consulAddr)
+	serviceID, err := RegisterService(serviceName, *consulClient, host, port, consulInterval, consulTimeout)
+	if err == nil {
+		err = GetKV(cfg, consulClient, folder, serviceName)
 	} else {
 		print("error: " + err.Error())
 	}
