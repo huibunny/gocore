@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-kit/kit/log"
 	consulapi "github.com/hashicorp/consul/api"
 )
 
@@ -60,28 +59,21 @@ func ServiceAddress(passingService PassingService) string {
 }
 
 // ServicesByPassing 获取可用的服务
-func ServicesByPassing(client *consulapi.Client, serviceName string, logger log.Logger) []PassingService {
+func ServicesByPassing(client *consulapi.Client, serviceName string) []PassingService {
 
 	healthChecks, _, _ := client.Health().State(consulapi.HealthPassing, nil)
 	var result []PassingService
-	if healthChecks != nil {
-		logger.Log("len", len(healthChecks))
-		for _, healthCheck := range healthChecks {
-			name := RetrieveServiceName(healthCheck.Name)
-			if name == serviceName {
-				address, port := RetrieveAddressPort(healthCheck.Output)
-				serviceID := RetrieveServiceID(healthCheck.CheckID)
-				service := PassingService{
-					address,
-					port,
-					serviceID,
-				}
-				result = append(result, service)
-				logger.Log("HealthCheck ServiceID", serviceID)
-			} else {
-				logger.Log("HealthCheck Name", healthCheck.Name)
-				logger.Log("servcieName", serviceName)
+	for _, healthCheck := range healthChecks {
+		name := RetrieveServiceName(healthCheck.Name)
+		if name == serviceName {
+			address, port := RetrieveAddressPort(healthCheck.Output)
+			serviceID := RetrieveServiceID(healthCheck.CheckID)
+			service := PassingService{
+				address,
+				port,
+				serviceID,
 			}
+			result = append(result, service)
 		}
 	}
 
@@ -89,10 +81,9 @@ func ServicesByPassing(client *consulapi.Client, serviceName string, logger log.
 }
 
 // LogServiceID Log service id
-func LogServiceID(services []PassingService, logger log.Logger) {
-	logger.Log("service count", len(services))
+func LogServiceID(services []PassingService) {
 	for _, service := range services {
-		logger.Log("service", service.ServiceID)
+		print("service", service.ServiceID)
 	}
 }
 
@@ -111,7 +102,9 @@ func ServiceIndex(pathArray []string, item string) int {
 }
 
 // RegisterService register service in consul
-func registerService(service string, client consulapi.Client, svcHost string, svcPort string, consulInterval string, consulTimeout string) (string, error) {
+func RegisterService(service string, client consulapi.Client,
+	svcHost string, svcPort string, consulInterval string,
+	consulTimeout string) (string, error) {
 	svcAddress := svcHost + ":" + svcPort
 
 	// 设置Consul对服务健康检查的参数
