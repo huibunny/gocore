@@ -19,3 +19,27 @@ func TestGetHostIP(t *testing.T) {
 		})
 	}
 }
+
+func TestGetHostPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		addr     string
+		wantHost string
+		wantPort string
+	}{
+		// TOD: Add test cases.
+		{"TestGetHostPort", ":9090", "172.16.12.8", "9090"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotHost, gotPort := GetHostPort(tt.addr)
+			if gotHost != tt.wantHost {
+				t.Errorf("GetHostPort() returns Host: %v, want %v.", gotHost, tt.wantHost)
+			}
+
+			if gotPort != tt.wantPort {
+				t.Errorf("GetHostPort() returns Port: %v, want %v.", gotPort, tt.wantPort)
+			}
+		})
+	}
+}

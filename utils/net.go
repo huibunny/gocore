@@ -1,13 +1,14 @@
 package utils
 
 import (
-	"net"
 	"fmt"
+	"net"
 	"os"
+	"strings"
 )
 
 // GetHostIP get host ip address
-func GetHostIP() (string) {
+func GetHostIP() string {
 	hostAddress := ""
 	addrs, err := net.InterfaceAddrs()
 
@@ -28,4 +29,22 @@ func GetHostIP() (string) {
 		}
 	}
 	return hostAddress
+}
+
+func GetHostPort(addr string) (string, string) {
+	host := "localhost"
+	port := "0"
+	hostPorts := strings.Split(addr, ":")
+	if len(hostPorts) > 1 {
+		host = hostPorts[0]
+		port = hostPorts[1]
+	} else {
+		port = hostPorts[0]
+	}
+	if len(host) == 0 {
+		host = GetHostIP()
+	} else {
+	}
+
+	return host, port
 }
