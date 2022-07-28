@@ -4,6 +4,71 @@ import (
 	"testing"
 )
 
+func Test_Consul(t *testing.T) {
+	type (
+
+		// App -.
+		App struct {
+			Name    string `env-required:"true" yaml:"name"    env:"APP_NAME"`
+			Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
+		}
+
+		// Log -.
+		Log struct {
+			Level string `env-required:"true" yaml:"log_level"   env:"LOG_LEVEL"`
+		}
+
+		// PG -.
+		PG struct {
+			PoolMax int    `env-required:"true" yaml:"pool_max" env:"PG_POOL_MAX"`
+			URL     string `env-required:"true" yaml:"url"      env:"PG_URL"`
+		}
+
+		// RMQ -.
+		RMQ struct {
+			ServerExchange string `env-required:"true" yaml:"rpc_server_exchange" env:"RMQ_RPC_SERVER"`
+			ClientExchange string `env-required:"true" yaml:"rpc_client_exchange" env:"RMQ_RPC_CLIENT"`
+			URL            string `env-required:"true" yaml:"url"                 env:"RMQ_URL"`
+		}
+
+		// Config -.
+		Config struct {
+			App `yaml:"app"`
+			Log `yaml:"logger"`
+			PG  `yaml:"postgres"`
+			RMQ `yaml:"rabbitmq"`
+		}
+	)
+
+	type args struct {
+		consulAddr     string
+		serviceName    string
+		host           string
+		port           string
+		consulInterval string
+		consulTimeout  string
+		folder         string
+	}
+
+	tests := []struct {
+		name string
+		args args
+	}{
+		{"Test_Consul", args{"127.0.0.1:8500", "clean", "172.16.12.8", "8888", "3", "3", "dev"}},
+	}
+	for _, tt := range tests {
+		cfg := &Config{}
+		t.Run(tt.name, func(t *testing.T) {
+			consulClient, serviceID, err := RegisterAndCfgConsul(cfg, tt.args.consulAddr, tt.args.serviceName,
+				tt.args.host, tt.args.port, tt.args.consulInterval, tt.args.consulTimeout, tt.args.folder)
+			if err != nil {
+				t.Errorf("RegisterAndCfgConsul returns error: %v.", err)
+			}
+			DeregisterService(consulClient, serviceID)
+		})
+	}
+}
+
 func Test_RetrieveAddressPort(t *testing.T) {
 	type args struct {
 		url string

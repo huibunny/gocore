@@ -2,10 +2,12 @@ package consul
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"gopkg.in/yaml.v2"
 )
 
 // RetrieveAddressPort 从url中获取地址和端口
@@ -101,6 +103,38 @@ func ServiceIndex(pathArray []string, item string) int {
 	return index
 }
 
+func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
+	host, port, consulInterval,
+	consulTimeout, folder string) (*consulapi.Client, string, error) {
+	// 创建consul api客户端
+	consulConfig := consulapi.DefaultConfig()
+	consulConfig.Address = consulAddr
+	consulClient, err := consulapi.NewClient(consulConfig)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	var serviceID string
+	serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulInterval, consulTimeout)
+	if err == nil {
+		key := strings.Join([]string{folder, serviceName}, "/")
+		kv, _, err := consulClient.KV().Get(key, nil)
+		if err == nil {
+			// only support yaml kv
+			err = yaml.NewDecoder(strings.NewReader(string(kv.Value))).Decode(cfg)
+			if err == nil {
+			} else {
+				print("error: " + err.Error())
+			}
+		} else {
+			print("error: " + err.Error())
+		}
+	} else {
+		print("error: " + err.Error())
+	}
+	return consulClient, serviceID, err
+}
+
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
 	svcHost string, svcPort string, consulInterval string,
@@ -130,4 +164,8 @@ func RegisterService(service string, client consulapi.Client,
 	err := client.Agent().ServiceRegister(reg)
 
 	return reg.ID, err
+}
+
+func DeregisterService(consulClient *consulapi.Client, serviceID string) {
+	consulClient.Agent().ServiceDeregister(serviceID)
 }
