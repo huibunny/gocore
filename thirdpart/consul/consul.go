@@ -145,28 +145,27 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 }
 
 func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
-	port, folder string) (*consulapi.Client, string, error) {
+	listenAddr, folder string) (*consulapi.Client, string, string, error) {
+	host, port := utils.GetHostPort(listenAddr)
 	consulClient := CreateClient(consulAddr)
 	consulOption, err := GetKV(cfg, consulClient, folder, serviceName)
 	var serviceID string
 	if err == nil {
-		checkApi := consulOption["checkapi"]
-		interval := consulOption["interval"]
-		timeout := consulOption["timeout"]
-		serviceID, err = RegisterService(serviceName, *consulClient, port, checkApi, interval, timeout)
+		serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
 	} else {
 		print("error: " + err.Error())
 	}
-	return consulClient, serviceID, err
+	return consulClient, serviceID, port, err
 }
 
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
-	port, checkApi, consulInterval,
-	consulTimeout string) (string, error) {
-	host := utils.GetHostIP()
+	host, port string, consulOption map[string]string) (string, error) {
 	svcAddress := strings.Join([]string{host, port}, ":")
 
+	checkApi := consulOption["checkapi"]
+	interval := consulOption["interval"]
+	timeout := consulOption["timeout"]
 	// 设置Consul对服务健康检查的参数
 	if strings.HasPrefix(checkApi, "/") {
 		//
@@ -175,8 +174,8 @@ func RegisterService(service string, client consulapi.Client,
 	}
 	check := consulapi.AgentServiceCheck{
 		HTTP:     "http://" + svcAddress + checkApi,
-		Interval: consulInterval + "s",
-		Timeout:  consulTimeout + "s",
+		Interval: interval + "s",
+		Timeout:  timeout + "s",
 		Notes:    "Consul check service health status.",
 	}
 

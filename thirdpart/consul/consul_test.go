@@ -52,7 +52,7 @@ func Test_Consul(t *testing.T) {
 	type args struct {
 		consulAddr  string
 		serviceName string
-		port        string
+		addr        string
 		folder      string
 	}
 
@@ -60,13 +60,13 @@ func Test_Consul(t *testing.T) {
 		name string
 		args args
 	}{
-		{"Test_Consul", args{"172.16.12.11:8500", "clean", "8888", "dev"}},
+		{"Test_Consul", args{"172.16.12.11:8500", "clean", ":8888", "dev"}},
 	}
 	for _, tt := range tests {
 		cfg := &Config{}
 		t.Run(tt.name, func(t *testing.T) {
-			consulClient, serviceID, err := RegisterAndCfgConsul(cfg, tt.args.consulAddr, tt.args.serviceName,
-				tt.args.port, tt.args.folder)
+			consulClient, serviceID, _, err := RegisterAndCfgConsul(cfg, tt.args.consulAddr, tt.args.serviceName,
+				tt.args.addr, tt.args.folder)
 			if err != nil {
 				t.Errorf("RegisterAndCfgConsul returns error: %v.", err)
 			}
