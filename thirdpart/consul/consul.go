@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/huibunny/gocore/utils"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
@@ -116,7 +119,8 @@ func CreateClient(consulAddr string) *consulapi.Client {
 	return consulClient
 }
 
-func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) error {
+func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) (map[string]string, error) {
+	var consulOption map[string]string
 	key := strings.Join([]string{folder, serviceName}, "/")
 	kv, _, err := consulClient.KV().Get(key, nil)
 	if err == nil {
@@ -124,21 +128,32 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 			err = errors.New("KV not found for " + key + ".")
 		} else {
 			// only support yaml kv
-			err = yaml.NewDecoder(strings.NewReader(string(kv.Value))).Decode(cfg)
+			kvIO := strings.NewReader(string(kv.Value))
+			err = yaml.NewDecoder(kvIO).Decode(cfg)
+			viper.SetConfigType("yaml")
+			err := viper.ReadConfig(bytes.NewBuffer(kv.Value))
+			if err != nil {
+				print(err)
+			} else {
+				consulOption = viper.GetStringMapString("consul")
+			}
 		}
 	} else {
 	}
 
-	return err
+	return consulOption, err
 }
 
 func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
-	host, port, consulInterval,
-	consulTimeout, folder string) (*consulapi.Client, string, error) {
+	port, folder string) (*consulapi.Client, string, error) {
 	consulClient := CreateClient(consulAddr)
-	serviceID, err := RegisterService(serviceName, *consulClient, host, port, consulInterval, consulTimeout)
+	consulOption, err := GetKV(cfg, consulClient, folder, serviceName)
+	var serviceID string
 	if err == nil {
-		err = GetKV(cfg, consulClient, folder, serviceName)
+		checkApi := consulOption["checkapi"]
+		interval := consulOption["interval"]
+		timeout := consulOption["timeout"]
+		serviceID, err = RegisterService(serviceName, *consulClient, port, checkApi, interval, timeout)
 	} else {
 		print("error: " + err.Error())
 	}
@@ -147,33 +162,45 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
-	svcHost string, svcPort string, consulInterval string,
+	port, checkApi, consulInterval,
 	consulTimeout string) (string, error) {
-	svcAddress := svcHost + ":" + svcPort
+	host := utils.GetHostIP()
+	svcAddress := strings.Join([]string{host, port}, ":")
 
 	// 设置Consul对服务健康检查的参数
+	if strings.HasPrefix(checkApi, "/") {
+		//
+	} else {
+		checkApi = strings.Join([]string{"/", checkApi}, "")
+	}
 	check := consulapi.AgentServiceCheck{
-		HTTP:     "http://" + svcAddress + "/healthz",
+		HTTP:     "http://" + svcAddress + checkApi,
 		Interval: consulInterval + "s",
 		Timeout:  consulTimeout + "s",
 		Notes:    "Consul check service health status.",
 	}
 
-	port, _ := strconv.Atoi(svcPort)
+	intPort, _ := strconv.Atoi(port)
 
 	//设置微服务Consul的注册信息
 	reg := &consulapi.AgentServiceRegistration{
 		ID:      service + "_" + svcAddress,
 		Name:    service,
-		Address: svcHost,
-		Port:    port,
+		Address: host,
+		Port:    intPort,
 		Check:   &check,
 	}
 
 	// 执行注册
+	var serviceID string
 	err := client.Agent().ServiceRegister(reg)
+	if err != nil {
+		serviceID = ""
+	} else {
+		serviceID = reg.ID
+	}
 
-	return reg.ID, err
+	return serviceID, err
 }
 
 func DeregisterService(consulClient *consulapi.Client, serviceID string) {

@@ -7,6 +7,14 @@ import (
 )
 
 type (
+	// Config -.
+	Config struct {
+		App    `yaml:"app"`
+		Log    `yaml:"logger"`
+		Consul `yaml:"consul"`
+		PG     `yaml:"postgres"`
+		RMQ    `yaml:"rabbitmq"`
+	}
 
 	// App -.
 	App struct {
@@ -17,6 +25,13 @@ type (
 	// Log -.
 	Log struct {
 		Level string `env-required:"true" yaml:"log_level"   env:"LOG_LEVEL"`
+	}
+
+	// Consul -.
+	Consul struct {
+		CheckApi string `env-required:"true" yaml:"checkApi"    env:"CONSUL_CHECKAPI"`
+		Interval string `env-required:"true" yaml:"interval" env:"CONSUL_INTERVAL"`
+		Timeout  string `env-required:"true" yaml:"timeout" env:"CONSUL_TIMEOUT"`
 	}
 
 	// PG -.
@@ -31,38 +46,27 @@ type (
 		ClientExchange string `env-required:"true" yaml:"rpc_client_exchange" env:"RMQ_RPC_CLIENT"`
 		URL            string `env-required:"true" yaml:"url"                 env:"RMQ_URL"`
 	}
-
-	// Config -.
-	Config struct {
-		App `yaml:"app"`
-		Log `yaml:"logger"`
-		PG  `yaml:"postgres"`
-		RMQ `yaml:"rabbitmq"`
-	}
 )
 
 func Test_Consul(t *testing.T) {
 	type args struct {
-		consulAddr     string
-		serviceName    string
-		host           string
-		port           string
-		consulInterval string
-		consulTimeout  string
-		folder         string
+		consulAddr  string
+		serviceName string
+		port        string
+		folder      string
 	}
 
 	tests := []struct {
 		name string
 		args args
 	}{
-		{"Test_Consul", args{"127.0.0.1:8500", "clean", "172.16.12.8", "8888", "3", "3", "dev"}},
+		{"Test_Consul", args{"172.16.12.11:8500", "clean", "8888", "dev"}},
 	}
 	for _, tt := range tests {
 		cfg := &Config{}
 		t.Run(tt.name, func(t *testing.T) {
 			consulClient, serviceID, err := RegisterAndCfgConsul(cfg, tt.args.consulAddr, tt.args.serviceName,
-				tt.args.host, tt.args.port, tt.args.consulInterval, tt.args.consulTimeout, tt.args.folder)
+				tt.args.port, tt.args.folder)
 			if err != nil {
 				t.Errorf("RegisterAndCfgConsul returns error: %v.", err)
 			}
@@ -87,9 +91,11 @@ func Test_ConsulKV(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := GetKV(tt.args.cfg, tt.args.consulClient, tt.args.folder, tt.args.serviceName)
+			consulOption, err := GetKV(tt.args.cfg, tt.args.consulClient, tt.args.folder, tt.args.serviceName)
 			if err != nil {
 				t.Errorf("GetKV() returns error: %v.", err)
+			} else {
+				print(consulOption)
 			}
 		})
 	}
