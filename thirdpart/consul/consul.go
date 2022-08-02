@@ -141,6 +141,7 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 		} else {
 			err = errors.New(err.Error() + ", key: " + key)
 			time.Sleep(time.Duration(1) * time.Second)
+			tryTimes++
 		}
 	}
 
