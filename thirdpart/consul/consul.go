@@ -161,6 +161,7 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
 	host, port string, consulOption map[string]string) (string, error) {
+	fmt.Printf("host: %s, port: %s.", host, port)
 	svcAddress := strings.Join([]string{host, port}, ":")
 
 	checkApi := consulOption["checkapi"]
@@ -181,6 +182,7 @@ func RegisterService(service string, client consulapi.Client,
 
 	intPort, _ := strconv.Atoi(port)
 
+	fmt.Printf("check info, http: %s, interval: %s, timeout: %s.", check.HTTP, check.Interval, check.Timeout)
 	//设置微服务Consul的注册信息
 	serviceID := service + "_" + svcAddress
 	reg := &consulapi.AgentServiceRegistration{
