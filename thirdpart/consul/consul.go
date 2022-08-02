@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/huibunny/gocore/utils"
@@ -116,24 +117,31 @@ func CreateClient(consulAddr string) (*consulapi.Client, error) {
 func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) (map[string]string, error) {
 	var consulOption map[string]string
 	key := strings.Join([]string{folder, serviceName}, "/")
-	kv, _, err := consulClient.KV().Get(key, nil)
-	if err == nil {
-		if kv == nil {
-			err = errors.New("KV not found for " + key + ".")
-		} else {
-			// only support yaml kv
-			kvIO := strings.NewReader(string(kv.Value))
-			err = yaml.NewDecoder(kvIO).Decode(cfg)
-			viper.SetConfigType("yaml")
-			err := viper.ReadConfig(bytes.NewBuffer(kv.Value))
-			if err != nil {
-				print(err)
+	tryTimes := 0
+	var err error
+	for tryTimes < 3 {
+		var kv *consulapi.KVPair
+		kv, _, err = consulClient.KV().Get(key, nil)
+		if err == nil {
+			if kv == nil {
+				err = errors.New("KV not found for " + key + ".")
 			} else {
-				consulOption = viper.GetStringMapString("consul")
+				// only support yaml kv
+				kvIO := strings.NewReader(string(kv.Value))
+				err = yaml.NewDecoder(kvIO).Decode(cfg)
+				viper.SetConfigType("yaml")
+				err := viper.ReadConfig(bytes.NewBuffer(kv.Value))
+				if err != nil {
+					print(err)
+				} else {
+					consulOption = viper.GetStringMapString("consul")
+				}
 			}
+			break
+		} else {
+			err = errors.New(err.Error() + ", key: " + key)
+			time.Sleep(time.Duration(1) * time.Second)
 		}
-	} else {
-		err = errors.New(err.Error() + ", key: " + key)
 	}
 
 	return consulOption, err
@@ -198,6 +206,6 @@ func RegisterService(service string, client consulapi.Client,
 	return serviceID, err
 }
 
-func DeregisterService(consulClient *consulapi.Client, serviceID string) {
-	consulClient.Agent().ServiceDeregister(serviceID)
+func DeregisterService(consulClient *consulapi.Client, serviceID string) error {
+	return consulClient.Agent().ServiceDeregister(serviceID)
 }

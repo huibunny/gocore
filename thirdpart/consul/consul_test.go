@@ -98,7 +98,7 @@ func Test_ConsulKV(t *testing.T) {
 			if err != nil {
 				t.Errorf("GetKV() returns error: %v", err)
 			} else {
-				print(consulOption)
+				t.Logf("%v.", consulOption)
 			}
 		})
 	}
@@ -125,6 +125,44 @@ func Test_RetrieveAddressPort(t *testing.T) {
 			}
 			if got1 != tt.want1 {
 				t.Errorf("RetrieveAddressPort() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func Test_Deregister(t *testing.T) {
+	type Args struct {
+		consulAddr    string
+		serviceIDList []string
+	}
+	tests := []struct {
+		name string
+		args Args
+	}{
+		{
+			"Test_Deregister",
+			Args{
+				"172.16.12.11:8500",
+				[]string{
+					"clean_172.16.12.8:8811",
+					"clean_172.16.12.8:8812",
+					"clean_172.16.12.8:8813",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			consulClient, err := CreateClient(tt.args.consulAddr)
+			if err != nil {
+				t.Errorf("fail to connect consul, error: %s.", err.Error())
+			} else {
+				for _, serviceID := range tt.args.serviceIDList {
+					err = DeregisterService(consulClient, serviceID)
+					if err != nil {
+						t.Errorf("fail to deregister service(%s), error: %s.", serviceID, err)
+					}
+				}
 			}
 		})
 	}
