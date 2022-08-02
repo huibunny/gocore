@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"testing"
 
 	consulapi "github.com/hashicorp/consul/api"
@@ -69,6 +70,8 @@ func Test_Consul(t *testing.T) {
 				tt.args.addr, tt.args.folder)
 			if err != nil {
 				t.Errorf("RegisterAndCfgConsul returns error: %v.", err)
+			} else {
+				fmt.Println(serviceID)
 			}
 			DeregisterService(consulClient, serviceID)
 		})

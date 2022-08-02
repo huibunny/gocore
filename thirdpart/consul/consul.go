@@ -153,7 +153,7 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 	if err == nil {
 		serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
 	} else {
-		print("error: " + err.Error())
+		fmt.Println("error: " + err.Error())
 	}
 	return consulClient, serviceID, port, err
 }
@@ -182,8 +182,9 @@ func RegisterService(service string, client consulapi.Client,
 	intPort, _ := strconv.Atoi(port)
 
 	//设置微服务Consul的注册信息
+	serviceID := service + "_" + svcAddress
 	reg := &consulapi.AgentServiceRegistration{
-		ID:      service + "_" + svcAddress,
+		ID:      serviceID,
 		Name:    service,
 		Address: host,
 		Port:    intPort,
@@ -191,13 +192,7 @@ func RegisterService(service string, client consulapi.Client,
 	}
 
 	// 执行注册
-	var serviceID string
 	err := client.Agent().ServiceRegister(reg)
-	if err != nil {
-		serviceID = ""
-	} else {
-		serviceID = reg.ID
-	}
 
 	return serviceID, err
 }
