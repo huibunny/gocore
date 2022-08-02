@@ -148,20 +148,26 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 	listenAddr, folder string) (*consulapi.Client, string, string, error) {
 	host, port := utils.GetHostPort(listenAddr)
 	consulClient := CreateClient(consulAddr)
-	consulOption, err := GetKV(cfg, consulClient, folder, serviceName)
+	var err error
 	var serviceID string
-	if err == nil {
-		serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
+	if consulClient == nil {
+		var consulOption map[string]string
+		consulOption, err = GetKV(cfg, consulClient, folder, serviceName)
+		if err == nil {
+			serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
+		} else {
+			err = errors.New("fail to get kv(" + folder + "/" + serviceName + ") from consul, error: " + err.Error() + ".")
+		}
 	} else {
-		fmt.Println("error: " + err.Error())
+		err = errors.New("fail to connect consul(" + consulAddr + ").")
 	}
+
 	return consulClient, serviceID, port, err
 }
 
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
 	host, port string, consulOption map[string]string) (string, error) {
-	fmt.Printf("host: %s, port: %s.", host, port)
 	svcAddress := strings.Join([]string{host, port}, ":")
 
 	checkApi := consulOption["checkapi"]
@@ -182,7 +188,6 @@ func RegisterService(service string, client consulapi.Client,
 
 	intPort, _ := strconv.Atoi(port)
 
-	fmt.Printf("check info, http: %s, interval: %s, timeout: %s.", check.HTTP, check.Interval, check.Timeout)
 	//设置微服务Consul的注册信息
 	serviceID := service + "_" + svcAddress
 	reg := &consulapi.AgentServiceRegistration{
