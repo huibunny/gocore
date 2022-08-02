@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -107,16 +106,11 @@ func ServiceIndex(pathArray []string, item string) int {
 	return index
 }
 
-func CreateClient(consulAddr string) *consulapi.Client {
+func CreateClient(consulAddr string) (*consulapi.Client, error) {
 	// 创建consul api客户端
 	consulConfig := consulapi.DefaultConfig()
 	consulConfig.Address = consulAddr
-	consulClient, err := consulapi.NewClient(consulConfig)
-	if err != nil {
-		os.Exit(1)
-	}
-
-	return consulClient
+	return consulapi.NewClient(consulConfig)
 }
 
 func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) (map[string]string, error) {
@@ -147,10 +141,9 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 	listenAddr, folder string) (*consulapi.Client, string, string, error) {
 	host, port := utils.GetHostPort(listenAddr)
-	consulClient := CreateClient(consulAddr)
-	var err error
+	consulClient, err := CreateClient(consulAddr)
 	var serviceID string
-	if consulClient == nil {
+	if err == nil {
 		var consulOption map[string]string
 		consulOption, err = GetKV(cfg, consulClient, folder, serviceName)
 		if err == nil {
@@ -159,7 +152,7 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 			err = errors.New("fail to get kv(" + folder + "/" + serviceName + ") from consul, error: " + err.Error() + ".")
 		}
 	} else {
-		err = errors.New("fail to connect consul(" + consulAddr + ").")
+		err = errors.New("fail to connect consul(" + consulAddr + "). error: " + err.Error() + ".")
 	}
 
 	return consulClient, serviceID, port, err

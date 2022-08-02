@@ -85,7 +85,7 @@ func Test_ConsulKV(t *testing.T) {
 		folder       string
 		serviceName  string
 	}
-	consulClient := CreateClient("172.16.12.11:8500")
+	consulClient, _ := CreateClient("172.16.12.11:8500")
 	tests := []struct {
 		name string
 		args kvArgs
