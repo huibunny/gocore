@@ -90,13 +90,13 @@ func Test_ConsulKV(t *testing.T) {
 		name string
 		args kvArgs
 	}{
-		{"test_ConsulKV", kvArgs{&Config{}, consulClient, "dev", "clean"}},
+		{"test_ConsulKV", kvArgs{&Config{}, consulClient, "dev", "user"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			consulOption, err := GetKV(tt.args.cfg, tt.args.consulClient, tt.args.folder, tt.args.serviceName)
 			if err != nil {
-				t.Errorf("GetKV() returns error: %v.", err)
+				t.Errorf("GetKV() returns error: %v", err)
 			} else {
 				print(consulOption)
 			}

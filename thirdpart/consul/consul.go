@@ -133,6 +133,7 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 			}
 		}
 	} else {
+		err = errors.New(err.Error() + ", key: " + key)
 	}
 
 	return consulOption, err
@@ -149,7 +150,7 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 		if err == nil {
 			serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
 		} else {
-			err = errors.New("fail to get kv(" + folder + "/" + serviceName + ") from consul, error: " + err.Error() + ".")
+			err = errors.New("fail to get kv(" + folder + "/" + serviceName + ") from consul, error: " + err.Error())
 		}
 	} else {
 		err = errors.New("fail to connect consul(" + consulAddr + "). error: " + err.Error() + ".")
