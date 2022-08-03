@@ -25,7 +25,7 @@ func ParseToken(tokenStr string, secret string) (string, int64, map[string]inter
 		return "", -1, nil, err
 	}
 	userInfo := token.Claims.(jwt.MapClaims)
-	userName := userInfo["username"].(string)
+	userId := userInfo["user_id"].(string)
 	expireTime := int64(userInfo["expire_time"].(float64))
 	var extra map[string]interface{}
 	if userInfo["extra"] != nil {
@@ -34,5 +34,5 @@ func ParseToken(tokenStr string, secret string) (string, int64, map[string]inter
 		//
 	}
 
-	return userName, expireTime, extra, nil
+	return userId, expireTime, extra, nil
 }
