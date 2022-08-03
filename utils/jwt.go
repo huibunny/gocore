@@ -14,7 +14,7 @@ func CreateToken(obj map[string]interface{}, secret string) (string, error) {
 	tokenString, err := token.SignedString([]byte(secret))
 	return tokenString, err
 }
-func ParseToken(tokenStr string, secret string) (string, string, int64, map[string]interface{}, error) {
+func ParseToken(tokenStr string, secret string) (string, int64, map[string]interface{}, error) {
 	if len(secret) == 0 {
 		secret = DEFAULT_SECRET
 	}
@@ -22,11 +22,10 @@ func ParseToken(tokenStr string, secret string) (string, string, int64, map[stri
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return "", "", -1, nil, err
+		return "", -1, nil, err
 	}
 	userInfo := token.Claims.(jwt.MapClaims)
 	userName := userInfo["username"].(string)
-	password := userInfo["password"].(string)
 	expireTime := int64(userInfo["expire_time"].(float64))
 	var extra map[string]interface{}
 	if userInfo["extra"] != nil {
@@ -35,5 +34,5 @@ func ParseToken(tokenStr string, secret string) (string, string, int64, map[stri
 		//
 	}
 
-	return userName, password, expireTime, extra, nil
+	return userName, expireTime, extra, nil
 }

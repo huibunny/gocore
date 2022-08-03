@@ -33,14 +33,12 @@ func TestToken(t *testing.T) {
 				//
 			}
 
-			userName, password, expireTime, _, err := ParseToken(token, secret)
+			userName, expireTime, _, err := ParseToken(token, secret)
 			if err != nil {
 				t.Errorf("ParseToken returns error: %v.", err)
 			} else {
 				if userName != tt.args.Obj["username"] {
 					t.Errorf("%s fail, want: %s, got: %s.", tt.name, tt.args.Obj["username"], userName)
-				} else if password != tt.args.Obj["password"] {
-					t.Errorf("%s fail, want: %s, got: %s.", tt.name, tt.args.Obj["password"], password)
 				} else if expireTime <= 0 {
 					t.Errorf("%s fail, expire time is invalid: %v.", tt.name, expireTime)
 				} else {
@@ -61,12 +59,12 @@ func TestParseToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			userName, password, expireTime, _, err := ParseToken(tt.token, secret)
+			userName, expireTime, _, err := ParseToken(tt.token, secret)
 			if err != nil {
 				t.Errorf("%s failed, error: %v.", tt.Name, err.Error())
 			} else {
-				if len(userName) > 0 && len(password) > 0 {
-					t.Logf("username: %s, password: %s, expire time: %d.", userName, password, expireTime)
+				if len(userName) > 0 {
+					t.Logf("username: %s, expire time: %d.", userName, expireTime)
 				} else {
 					t.Errorf("%s failed: no username or password found.", tt.Name)
 				}
