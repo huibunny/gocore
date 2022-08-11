@@ -114,8 +114,8 @@ func CreateClient(consulAddr string) (*consulapi.Client, error) {
 	return consulapi.NewClient(consulConfig)
 }
 
-func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) (map[string]string, error) {
-	var consulOption map[string]string
+func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName string) (map[string]interface{}, error) {
+	var consulOption map[string]interface{}
 	key := strings.Join([]string{folder, serviceName}, "/")
 	tryTimes := 0
 	var err error
@@ -134,7 +134,7 @@ func GetKV(cfg interface{}, consulClient *consulapi.Client, folder, serviceName 
 				if err != nil {
 					print(err)
 				} else {
-					consulOption = viper.GetStringMapString("consul")
+					consulOption = viper.GetStringMap("consul")
 				}
 			}
 			break
@@ -154,7 +154,7 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 	consulClient, err := CreateClient(consulAddr)
 	var serviceID string
 	if err == nil {
-		var consulOption map[string]string
+		var consulOption map[string]interface{}
 		consulOption, err = GetKV(cfg, consulClient, folder, serviceName)
 		if err == nil {
 			serviceID, err = RegisterService(serviceName, *consulClient, host, port, consulOption)
@@ -170,12 +170,14 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 
 // RegisterService register service in consul
 func RegisterService(service string, client consulapi.Client,
-	host, port string, consulOption map[string]string) (string, error) {
+	host, port string, consulOption map[string]interface{}) (string, error) {
 	svcAddress := strings.Join([]string{host, port}, ":")
 
-	checkApi := consulOption["checkapi"]
-	interval := consulOption["interval"]
-	timeout := consulOption["timeout"]
+	checkApi := consulOption["checkapi"].(string)
+	interval := consulOption["interval"].(string)
+	timeout := consulOption["timeout"].(string)
+	// example for service user: ["urlprefix-/user strip=/user", "urlprefix-/payment strip=/payment"]
+	tags := consulOption["tags"].([]string)
 	// 设置Consul对服务健康检查的参数
 	if strings.HasPrefix(checkApi, "/") {
 		//
@@ -196,7 +198,7 @@ func RegisterService(service string, client consulapi.Client,
 	reg := &consulapi.AgentServiceRegistration{
 		ID:      serviceID,
 		Name:    service,
-		Tags:    []string{fmt.Sprintf("urlprefix-/%s strip=/%s", service, service)},
+		Tags:    tags,
 		Address: host,
 		Port:    intPort,
 		Check:   &check,
