@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"gocore/utils"
 	"strconv"
 	"strings"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/huibunny/gocore/utils"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
@@ -177,7 +177,7 @@ func RegisterService(service string, client consulapi.Client,
 	interval := consulOption["interval"].(string)
 	timeout := consulOption["timeout"].(string)
 	// example for service user: ["urlprefix-/user strip=/user", "urlprefix-/payment strip=/payment"]
-	tags := consulOption["tags"].([]string)
+	tags := utils.ToStrings(consulOption["tags"].([]interface{}))
 	// 设置Consul对服务健康检查的参数
 	if strings.HasPrefix(checkApi, "/") {
 		//
@@ -185,16 +185,16 @@ func RegisterService(service string, client consulapi.Client,
 		checkApi = strings.Join([]string{"/", checkApi}, "")
 	}
 	check := consulapi.AgentServiceCheck{
-		HTTP:     "http://" + svcAddress + checkApi,
-		Interval: interval + "s",
-		Timeout:  timeout + "s",
+		HTTP:     strings.Join([]string{"http://", svcAddress, checkApi}, ""),
+		Interval: strings.Join([]string{interval, "s"}, ""),
+		Timeout:  strings.Join([]string{timeout, "s"}, ""),
 		Notes:    "Consul check service health status.",
 	}
 
 	intPort, _ := strconv.Atoi(port)
 
 	//设置微服务Consul的注册信息
-	serviceID := service + "_" + svcAddress
+	serviceID := strings.Join([]string{service, svcAddress}, "_")
 	reg := &consulapi.AgentServiceRegistration{
 		ID:      serviceID,
 		Name:    service,

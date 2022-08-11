@@ -61,7 +61,7 @@ func Test_Consul(t *testing.T) {
 		name string
 		args args
 	}{
-		{"Test_Consul", args{"172.16.12.11:8500", "clean", ":8888", "dev"}},
+		{"Test_Consul", args{"172.16.12.11:8500", "app", ":8830", "dev"}},
 	}
 	for _, tt := range tests {
 		cfg := &Config{}
