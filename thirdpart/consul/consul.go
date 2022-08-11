@@ -196,6 +196,7 @@ func RegisterService(service string, client consulapi.Client,
 	reg := &consulapi.AgentServiceRegistration{
 		ID:      serviceID,
 		Name:    service,
+		Tags:    []string{fmt.Sprintf("urlprefix-/%s strip=/%s", service, service)},
 		Address: host,
 		Port:    intPort,
 		Check:   &check,
