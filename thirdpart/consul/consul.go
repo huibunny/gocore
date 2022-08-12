@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gocore/utils"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/huibunny/gocore/utils"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/spf13/viper"
