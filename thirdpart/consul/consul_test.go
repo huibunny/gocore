@@ -30,7 +30,7 @@ type (
 
 	// Consul -.
 	Consul struct {
-		CheckApi string `env-required:"true" yaml:"checkApi"    env:"CONSUL_CHECKAPI"`
+		CheckApi string `env-required:"true" yaml:"check_api"    env:"CONSUL_CHECKAPI"`
 		Interval string `env-required:"true" yaml:"interval" env:"CONSUL_INTERVAL"`
 		Timeout  string `env-required:"true" yaml:"timeout" env:"CONSUL_TIMEOUT"`
 	}
@@ -61,7 +61,7 @@ func Test_Consul(t *testing.T) {
 		name string
 		args args
 	}{
-		{"Test_Consul", args{"172.16.12.11:8500", "app", ":8830", "dev"}},
+		{"Test_Consul", args{"dog.ap:8500", "app", ":8830", "dev"}},
 	}
 	for _, tt := range tests {
 		cfg := &Config{}
@@ -85,12 +85,12 @@ func Test_ConsulKV(t *testing.T) {
 		folder       string
 		serviceName  string
 	}
-	consulClient, _ := CreateClient("172.16.12.11:8500")
+	consulClient, _ := CreateClient("dog.ap:8500")
 	tests := []struct {
 		name string
 		args kvArgs
 	}{
-		{"test_ConsulKV", kvArgs{&Config{}, consulClient, "dev", "user"}},
+		{"test_ConsulKV", kvArgs{&Config{}, consulClient, "dev", "page"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,11 +142,9 @@ func Test_Deregister(t *testing.T) {
 		{
 			"Test_Deregister",
 			Args{
-				"172.16.12.11:8500",
+				"dog.ap:8500",
 				[]string{
-					"user_172.16.12.8:8820",
-					"user_172.16.12.11:8821",
-					"user_172.16.12.11:8822",
+					"app_172.16.12.8:8830",
 				},
 			},
 		},

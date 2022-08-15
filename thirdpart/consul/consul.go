@@ -174,7 +174,7 @@ func RegisterService(service string, client consulapi.Client,
 	host, port string, consulOption map[string]interface{}) (string, error) {
 	svcAddress := strings.Join([]string{host, port}, ":")
 
-	checkApi := consulOption["checkapi"].(string)
+	checkApi := consulOption["check_api"].(string)
 	interval := consulOption["interval"].(string)
 	timeout := consulOption["timeout"].(string)
 	// example for service user: ["urlprefix-/user strip=/user", "urlprefix-/payment strip=/payment"]
