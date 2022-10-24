@@ -166,6 +166,10 @@ func RegisterAndCfgConsul(cfg interface{}, consulAddr, serviceName,
 		err = errors.New("fail to connect consul(" + consulAddr + "). error: " + err.Error() + ".")
 	}
 
+        if err != nil {
+		fmt.Println(err.Error())
+	}
+
 	return consulClient, serviceID, port, err
 }
 
